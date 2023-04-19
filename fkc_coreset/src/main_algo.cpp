@@ -143,8 +143,8 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
         int best_point = -1;
         int max_score = INT_MIN;
         for (int i : possible_candidates) {
-            vector<int> coverage_compute;
-            vector<int> fairness_compute;
+            // vector<int> coverage_compute;
+            // vector<int> fairness_compute;
             // transform(posting_list[i].begin(), posting_list[i].end(), coverage_tracker.begin(), coverage_compute.begin(), multiplies<int>());
             // transform(labels_dict[i].begin(), labels_dict[i].end(), fairness_tracker.begin(), fairness_compute.begin(), multiplies<int>());
             // int coverage_score = accumulate(coverage_compute.begin(), coverage_compute.end(), 0);
@@ -158,9 +158,33 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
         }
 
         if (best_point != -1) {
+            cout << "Found a point" << endl;
             coreset.insert(best_point);
-            transform(posting_list[best_point].begin(), posting_list[best_point].end(), coverage_tracker.begin(), coverage_tracker.begin(), minus<int>());
-            transform(labels_dict[best_point].begin(), labels_dict[best_point].end(), fairness_tracker.begin(), fairness_tracker.begin(), minus<int>());
+            cout << "Coreset size: " << to_string(coreset.size()) << endl;
+            // vector<int> temp_coverage_tracker;
+            // vector<int> temp_fairness_tracker;
+            // transform(posting_list[best_point].begin(), posting_list[best_point].end(), coverage_tracker.begin(), temp_coverage_tracker.begin(), minus<int>());
+            // transform(labels_dict[best_point].begin(), labels_dict[best_point].end(), fairness_tracker.begin(), temp_fairness_tracker.begin(), minus<int>());
+            // coverage_tracker = temp_coverage_tracker;
+            // fairness_tracker = temp_fairness_tracker;
+            vector<int> pl_best = posting_list[best_point];
+            for (auto i : pl_best) {
+                if (i == 1) {
+                    coverage_tracker[i] -= 1;
+                    if (coverage_tracker[i] < 0) {
+                        coverage_tracker[i] = 0;
+                    }
+                }
+            }
+            vector<int> labels_best = labels_dict[best_point];
+            for (auto i : labels_best) {
+                if (i == 1) {
+                    fairness_tracker[i] -= 1;
+                    if (fairness_tracker[i] < 0) {
+                        fairness_tracker[i] = 0;
+                    }
+                }
+            }
         } else {
             cout << "Cannot find a point" << endl;
             break;
