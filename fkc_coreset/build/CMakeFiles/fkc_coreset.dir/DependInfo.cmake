@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/u/pmundra/fkc_coreset/src/main_algo.cpp" "/u/pmundra/fkc_coreset/build/CMakeFiles/fkc_coreset.dir/main_algo.cpp.o"
+  "/u/pmundra/fkc_coreset_cpp/fkc_coreset/src/main_algo.cpp" "/u/pmundra/fkc_coreset_cpp/fkc_coreset/build/CMakeFiles/fkc_coreset.dir/main_algo.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

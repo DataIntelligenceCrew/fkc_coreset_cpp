@@ -1,1 +1,1 @@
-/usr/bin/g++ -g CMakeFiles/fkc_coreset.dir/main_algo.cpp.o -o fkc_coreset 
+/usr/bin/c++ CMakeFiles/fkc_coreset.dir/main_algo.cpp.o -o fkc_coreset 

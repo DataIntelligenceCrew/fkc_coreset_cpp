@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/u/pmundra/fkc_coreset/src/main_algo.cpp
+/u/pmundra/fkc_coreset_cpp/fkc_coreset/src/main_algo.cpp
 iostream
 -
 string
