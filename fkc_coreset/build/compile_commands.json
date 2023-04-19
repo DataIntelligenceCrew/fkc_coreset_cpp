@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/u/pmundra/fkc_coreset/build",
+  "command": "/usr/bin/g++   -g -std=gnu++11 -o CMakeFiles/fkc_coreset.dir/main_algo.cpp.o -c /u/pmundra/fkc_coreset/src/main_algo.cpp",
+  "file": "/u/pmundra/fkc_coreset/src/main_algo.cpp"
+}
+]

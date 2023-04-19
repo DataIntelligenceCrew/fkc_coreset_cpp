@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/u/pmundra/fkc_coreset/src/main_algo.cpp
+iostream
+-
+string
+-
+set
+-
+vector
+-
+cmath
+-
+ctime
+-
+climits
+-
+unordered_map
+-
+unordered_set
+-
+chrono
+-
+map
+-
+sstream
+-
+fstream
+-
+algorithm
+-
+numeric
+-
+functional
+-
+
