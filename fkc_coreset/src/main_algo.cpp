@@ -151,6 +151,8 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
             // int fairness_score = accumulate(fairness_compute.begin(), fairness_compute.end(), 0);
             int coverage_score = inner_product(posting_list[i].begin(), posting_list[i].end(), coverage_tracker.begin(), 0);
             int fairness_score = inner_product(labels_dict[i].begin(), labels_dict[i].end(), fairness_tracker.begin(), 0);
+            // cout << "Coverage score is " << coverage_score << endl;
+            // cout << "Fairness score is " << fairness_score << endl;
             if ((coverage_score + fairness_score) > max_score) {
                 best_point = i;
                 max_score = coverage_score + fairness_score;
@@ -169,25 +171,37 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
             // fairness_tracker = temp_fairness_tracker;
             vector<int> pl_best = posting_list[best_point];
             for (auto i : pl_best) {
+                // cout << i << endl;
                 if (i == 1) {
-                    coverage_tracker[i] -= 1;
-                    if (coverage_tracker[i] < 0) {
-                        coverage_tracker[i] = 0;
+                    // cout << "here" << endl;
+                    // cout << coverage_tracker[i] << endl;
+                    // coverage_tracker[i] -= 1;
+                    // cout << coverage_tracker[i] << endl;
+                    if (coverage_tracker[i] != 0) {
+                        coverage_tracker[i] -= 1;
                     }
+                    // cout << coverage_tracker[i] << endl;
+                    // break;
                 }
             }
             vector<int> labels_best = labels_dict[best_point];
             for (auto i : labels_best) {
                 if (i == 1) {
-                    fairness_tracker[i] -= 1;
-                    if (fairness_tracker[i] < 0) {
-                        fairness_tracker[i] = 0;
+                    // fairness_tracker[i] -= 1;
+                    if (fairness_tracker[i] != 0) {
+                        fairness_tracker[i] -= 1;
                     }
                 }
             }
         } else {
             cout << "Cannot find a point" << endl;
             break;
+        }
+
+        if ((check_for_zeros(coverage_tracker)) && (check_for_zeros(fairness_tracker))) {
+            cout << "Satisfied" << endl;
+        } else {
+            cout << "not satisfied" << endl;
         }
         
     }
