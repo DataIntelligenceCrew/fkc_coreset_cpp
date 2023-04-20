@@ -31,12 +31,19 @@
 #include <algorithm>
 #include <numeric>
 #include <functional>
+#include <random>
 using namespace std;
 
 
 bool check_for_zeros(vector<int> v) {
-    bool zeros = std::all_of(v.begin(), v.end(), [](int i){ return i == 0;});
-    return zeros;
+    // bool zeros = std::all_of(v.begin(), v.end(), [](int i){ return i == 0;});
+    // return zeros;
+    for (auto i : v) {
+        if (i > 0) {
+            return false;
+        }
+    }
+    return true;
 }
 
 
@@ -58,6 +65,20 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
     double pre_time = 0.0;
     double algo_time = 0.0;
     string posting_list_file = "/localdisk3/data-selection/data/metadata/cifar10/0.9/resnet-18_rf.txt";
+    string labels_file = "/localdisk3/data-selection/data/metadata/cifar10/labels.txt";
+    map<int, vector<int>> labels_dict;
+    // initialize trackers
+    /**
+     * @todo coverage tracker sparse points
+     * @todo fairness tracker class wise distribution req
+    */
+    vector<int> coverage_tracker(dataset_size, coverage_factor);
+    vector<int> fairness_tracker(num_classes, distribution_req);
+    set<int> coreset;
+    set<int> delta;
+
+
+
     std::chrono::time_point<std::chrono::high_resolution_clock> pre_start, pre_end;
     std::chrono::duration<double> pre_elapsed;
     pre_start = std::chrono::high_resolution_clock::now();
@@ -86,8 +107,7 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
         cout << "Error opening input file: " << posting_list_file << endl;
     }
     infile.close();
-    string labels_file = "/localdisk3/data-selection/data/metadata/cifar10/labels.txt";
-    map<int, vector<int>> labels_dict;
+    
     std::ifstream lfile(labels_file);
     if (lfile.is_open()) {
         string line;
@@ -121,15 +141,7 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
     pre_time = pre_elapsed.count();
     cout << "Preprocessing Time: " << to_string(pre_time) << endl;
 
-    // initialize trackers
-    /**
-     * @todo coverage tracker sparse points
-     * @todo fairness tracker class wise distribution req
-    */
-    vector<int> coverage_tracker(dataset_size, coverage_factor);
-    vector<int> fairness_tracker(num_classes, distribution_req);
-    set<int> coreset;
-    set<int> delta;
+    
     for (int i = 0; i < dataset_size; i++) {
         delta.insert(i);
     }
@@ -198,7 +210,7 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
             break;
         }
 
-        if ((check_for_zeros(coverage_tracker)) && (check_for_zeros(fairness_tracker))) {
+        if (check_for_zeros(fairness_tracker)) {
             cout << "Satisfied" << endl;
         } else {
             cout << "not satisfied" << endl;
@@ -213,7 +225,93 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
     
 }
 
+/**
+ * ManyToMany Swapping Algorithm 
+ * @param coverage_coreset coreset that satisfies K-coverage
+ * @param dataset_name name of the dataset
+ * @param num_classes number of classes/groups in the dataset
+ * @param dataset_size size of the dataset
+ * @param distribution_req fairness constraint for groups
+*/
+void many_to_many_swap(set<int> coverage_coreset, string dataset_name, int num_classes, int dataset_size, int distribution_req) {
+    map<int, set<int>> labels_to_points;
+    map<int, set<int>> coverage_coreset_distribution;
+    set<int> g_left;
+    set<int> g_extra;
+    set<int> L;
+    set<int> R;
+    set<int> delta_minus_coverage_coreset;
 
+    for (int d = 0; d < dataset_size; d++) {
+        set<int>::iterator it = coverage_coreset.find(d);
+        if (it == coverage_coreset.end()) {
+            delta_minus_coverage_coreset.insert(d);
+        }
+    }
+
+    for (int i = 0; i < num_classes; i++) {
+        set<int> points;
+        labels_to_points[i] = points; 
+    }
+    string labels_file = "/localdisk3/data-selection/data/metadata/cifar10/labels.txt";
+    std::ifstream lfile(labels_file);
+    if (lfile.is_open()) {
+        string line;
+        while (getline(lfile, line)) {
+            stringstream ss(line);
+            string value;
+            char del = ':';
+            int iter = 0;
+            int id;
+            int label;
+            while (!ss.eof()) {
+                getline(ss, value, del);
+                if (iter == 0) {
+                    id = stoi(value);
+                    iter += 1;
+                } else {
+                    label = stoi(value);
+                }
+            }
+            labels_to_points[label].insert(id);
+        }
+    } else {
+        cout << "Error opening input file: " << labels_file << endl;
+    }
+
+    for (int i = 0; i < num_classes; i++) {
+        set<int> class_points;
+        set_intersection(coverage_coreset.begin(), coverage_coreset.end(), labels_to_points[i].begin(), labels_to_points[i].end(), inserter(class_points, class_points.begin()));
+        coverage_coreset_distribution[i] = class_points;
+    }
+
+    for (auto const& x : coverage_coreset_distribution) {
+        int group_id = x.first;
+        if (x.second.size() < distribution_req) {
+            g_left.insert(group_id);
+        } 
+        
+        if (x.second.size() > distribution_req) {
+            g_extra.insert(group_id);
+            int number_of_points = x.second.size() - distribution_req;
+            std::sample(x.second.begin(), x.second.end(), inserter(L, L.begin()), number_of_points, std::mt19937 {std::random_device{} ()});
+        }
+    }
+
+    for (auto gl : g_left) {
+        set_intersection(delta_minus_coverage_coreset.begin(), delta_minus_coverage_coreset.end(), labels_to_points[gl].begin(), labels_to_points[gl].end(), inserter(R, R.begin()));
+    }
+    
+
+
+
+
+
+
+
+
+
+}
 
 
 
