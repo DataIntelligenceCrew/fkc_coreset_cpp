@@ -172,9 +172,9 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
         }
 
         if (best_point != -1) {
-            cout << "Found a point" << endl;
+            // cout << "Found a point" << endl;
             coreset.insert(best_point);
-            cout << "Coreset size: " << to_string(coreset.size()) << endl;
+            // cout << "Coreset size: " << to_string(coreset.size()) << endl;
             // vector<int> temp_coverage_tracker;
             // vector<int> temp_fairness_tracker;
             // transform(posting_list[best_point].begin(), posting_list[best_point].end(), coverage_tracker.begin(), temp_coverage_tracker.begin(), minus<int>());
@@ -182,39 +182,42 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
             // coverage_tracker = temp_coverage_tracker;
             // fairness_tracker = temp_fairness_tracker;
             vector<int> pl_best = posting_list[best_point];
-            for (auto i : pl_best) {
-                // cout << i << endl;
-                if (i == 1) {
-                    // cout << "here" << endl;
-                    // cout << coverage_tracker[i] << endl;
-                    // coverage_tracker[i] -= 1;
-                    // cout << coverage_tracker[i] << endl;
+            for (int i = 0; i < dataset_size; i++) {
+                if (pl_best[i] == 1) {
                     if (coverage_tracker[i] != 0) {
                         coverage_tracker[i] -= 1;
                     }
-                    // cout << coverage_tracker[i] << endl;
-                    // break;
                 }
             }
             vector<int> labels_best = labels_dict[best_point];
-            for (auto i : labels_best) {
-                if (i == 1) {
+            for (int i = 0; i < num_classes; i++) {
+                if (labels_best[i] == 1) {
                     // fairness_tracker[i] -= 1;
                     if (fairness_tracker[i] != 0) {
                         fairness_tracker[i] -= 1;
                     }
                 }
             }
+
+            // int satisfied_points = 0;
+            // for (auto i : coverage_tracker) {
+            //     if (i == 0) {
+            //         satisfied_points += 1;
+            //     }
+            // }
+
+            // cout << "Number of satisfied points: " << satisfied_points << endl;
+
         } else {
             cout << "Cannot find a point" << endl;
             break;
         }
 
-        if (check_for_zeros(fairness_tracker)) {
-            cout << "Satisfied" << endl;
-        } else {
-            cout << "not satisfied" << endl;
-        }
+        // if (check_for_zeros(fairness_tracker)) {
+        //     cout << "Satisfied" << endl;
+        // } else {
+        //     cout << "not satisfied" << endl;
+        // }
         
     }
     algo_end = std::chrono::high_resolution_clock::now();
@@ -228,12 +231,13 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
 /**
  * ManyToMany Swapping Algorithm 
  * @param coverage_coreset coreset that satisfies K-coverage
+ * @param posting_list for each point, the points it represents
  * @param dataset_name name of the dataset
  * @param num_classes number of classes/groups in the dataset
  * @param dataset_size size of the dataset
  * @param distribution_req fairness constraint for groups
 */
-void many_to_many_swap(set<int> coverage_coreset, string dataset_name, int num_classes, int dataset_size, int distribution_req) {
+void many_to_many_swap(set<int> coverage_coreset, map<int, vector<int>> posting_list, string dataset_name, int num_classes, int dataset_size, int distribution_req) {
     map<int, set<int>> labels_to_points;
     map<int, set<int>> coverage_coreset_distribution;
     set<int> g_left;
@@ -301,13 +305,6 @@ void many_to_many_swap(set<int> coverage_coreset, string dataset_name, int num_c
     for (auto gl : g_left) {
         set_intersection(delta_minus_coverage_coreset.begin(), delta_minus_coverage_coreset.end(), labels_to_points[gl].begin(), labels_to_points[gl].end(), inserter(R, R.begin()));
     }
-    
-
-
-
-
-
-
 
 
 
