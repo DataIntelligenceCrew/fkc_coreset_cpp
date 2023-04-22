@@ -32,18 +32,20 @@
 #include <numeric>
 #include <functional>
 #include <random>
+#include <queue>
+#include <omp.h>
 using namespace std;
 
 
 bool check_for_zeros(vector<int> v) {
-    // bool zeros = std::all_of(v.begin(), v.end(), [](int i){ return i == 0;});
-    // return zeros;
-    for (auto i : v) {
-        if (i > 0) {
-            return false;
-        }
-    }
-    return true;
+    bool zeros = std::all_of(v.begin(), v.end(), [](int i){ return i == 0;});
+    return zeros;
+    // for (auto i : v) {
+    //     if (i > 0) {
+    //         return false;
+    //     }
+    // }
+    // return true;
 }
 
 
@@ -151,24 +153,40 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
     algo_start = std::chrono::high_resolution_clock::now();
     while (((!check_for_zeros(coverage_tracker)) || (!check_for_zeros(fairness_tracker))) && coreset.size() < dataset_size) {
         vector<int> possible_candidates;
+        priority_queue<pair<int, int>> scores;
         set_difference(delta.begin(), delta.end(), coreset.begin(), coreset.end(), inserter(possible_candidates, possible_candidates.begin()));
         int best_point = -1;
         int max_score = INT_MIN;
-        for (int i : possible_candidates) {
+
+        omp_lock_t write_lock;
+        omp_init_lock(&write_lock);
+
+        # pragma omp parallel for
+        for (int j = 0; j < possible_candidates.size(); j++) {
             // vector<int> coverage_compute;
             // vector<int> fairness_compute;
             // transform(posting_list[i].begin(), posting_list[i].end(), coverage_tracker.begin(), coverage_compute.begin(), multiplies<int>());
             // transform(labels_dict[i].begin(), labels_dict[i].end(), fairness_tracker.begin(), fairness_compute.begin(), multiplies<int>());
             // int coverage_score = accumulate(coverage_compute.begin(), coverage_compute.end(), 0);
             // int fairness_score = accumulate(fairness_compute.begin(), fairness_compute.end(), 0);
+            int i = possible_candidates[j];
             int coverage_score = inner_product(posting_list[i].begin(), posting_list[i].end(), coverage_tracker.begin(), 0);
             int fairness_score = inner_product(labels_dict[i].begin(), labels_dict[i].end(), fairness_tracker.begin(), 0);
             // cout << "Coverage score is " << coverage_score << endl;
             // cout << "Fairness score is " << fairness_score << endl;
-            if ((coverage_score + fairness_score) > max_score) {
-                best_point = i;
-                max_score = coverage_score + fairness_score;
-            }
+            // if ((coverage_score + fairness_score) > max_score) {
+            //     best_point = i;
+            //     max_score = coverage_score + fairness_score;
+            // }
+            omp_set_lock(&write_lock);
+            scores.push(make_pair(coverage_score + fairness_score, i));
+            omp_unset_lock(&write_lock);
+        }
+        omp_destroy_lock(&write_lock);
+
+        pair<int, int> possible_point = scores.top();
+        if (possible_point.first > max_score) {
+            best_point = possible_point.second;
         }
 
         if (best_point != -1) {
@@ -305,6 +323,8 @@ void many_to_many_swap(set<int> coverage_coreset, map<int, vector<int>> posting_
     for (auto gl : g_left) {
         set_intersection(delta_minus_coverage_coreset.begin(), delta_minus_coverage_coreset.end(), labels_to_points[gl].begin(), labels_to_points[gl].end(), inserter(R, R.begin()));
     }
+
+
 
 
 

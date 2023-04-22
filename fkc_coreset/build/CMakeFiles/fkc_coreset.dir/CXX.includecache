@@ -41,4 +41,8 @@ functional
 -
 random
 -
+queue
+-
+omp.h
+-
 

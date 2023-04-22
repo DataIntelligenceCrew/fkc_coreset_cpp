@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.18.2)
 project(fkc_coreset)
 set( CMAKE_CXX_STANDARD 17 )
+find_package(OpenMP REQUIRED)
 add_executable(fkc_coreset main_algo.cpp)
+target_link_libraries(fkc_coreset PRIVATE OpenMP::OpenMP_CXX)

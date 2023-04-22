@@ -98,6 +98,8 @@ fkc_coreset_EXTERNAL_OBJECTS =
 
 fkc_coreset: CMakeFiles/fkc_coreset.dir/main_algo.cpp.o
 fkc_coreset: CMakeFiles/fkc_coreset.dir/build.make
+fkc_coreset: /usr/lib/gcc/x86_64-redhat-linux/8/libgomp.so
+fkc_coreset: /usr/lib64/libpthread.so
 fkc_coreset: CMakeFiles/fkc_coreset.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/u/pmundra/fkc_coreset_cpp/fkc_coreset/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable fkc_coreset"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/fkc_coreset.dir/link.txt --verbose=$(VERBOSE)
