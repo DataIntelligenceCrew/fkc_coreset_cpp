@@ -1,3 +1,6 @@
 {
-    "cmake.sourceDirectory": "${workspaceFolder}/fkc_coreset/src"
+    "cmake.sourceDirectory": "${workspaceFolder}/fkc_coreset/src",
+    "files.associations": {
+        "iosfwd": "cpp"
+    }
 }
