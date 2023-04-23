@@ -174,20 +174,21 @@ void gfkc(string dataset, double coverage_factor, int distribution_req, int num_
             int fairness_score = inner_product(labels_dict[i].begin(), labels_dict[i].end(), fairness_tracker.begin(), 0);
             // cout << "Coverage score is " << coverage_score << endl;
             // cout << "Fairness score is " << fairness_score << endl;
-            // if ((coverage_score + fairness_score) > max_score) {
-            //     best_point = i;
-            //     max_score = coverage_score + fairness_score;
-            // }
             omp_set_lock(&write_lock);
-            scores.push(make_pair(coverage_score + fairness_score, i));
+            if ((coverage_score + fairness_score) > max_score) {
+                best_point = i;
+                max_score = coverage_score + fairness_score;
+            }
+            
+            // scores.push(make_pair(coverage_score + fairness_score, i));
             omp_unset_lock(&write_lock);
         }
         omp_destroy_lock(&write_lock);
 
-        pair<int, int> possible_point = scores.top();
-        if (possible_point.first > max_score) {
-            best_point = possible_point.second;
-        }
+        // pair<int, int> possible_point = scores.top();
+        // if (possible_point.first > max_score) {
+        //     best_point = possible_point.second;
+        // }
 
         if (best_point != -1) {
             // cout << "Found a point" << endl;
