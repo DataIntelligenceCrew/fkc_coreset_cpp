@@ -321,6 +321,9 @@ set<int> gfkc(string dataset, double coverage_factor, int distribution_req, int 
  * @param coverage_factor number of representatives for each point in the coreset
 */
 void many_to_many_swap(set<int> coverage_coreset, string dataset_name, int num_classes, int dataset_size, int distribution_req, int coverage_factor) {
+    
+    double pre_time = 0.0;
+    double algo_time = 0.0;
     map<int, set<int>> labels_to_points;
     map<int, set<int>> coverage_coreset_distribution;
     set<int> g_left;
@@ -331,6 +334,10 @@ void many_to_many_swap(set<int> coverage_coreset, string dataset_name, int num_c
     vector<int> coverage_tracker(dataset_size, 0);
     map<int, set<int>> posting_list = get_posting_list(dataset_size, dataset_name);
 
+    
+    std::chrono::time_point<std::chrono::high_resolution_clock> pre_start, pre_end;
+    std::chrono::duration<double> pre_elapsed;
+    pre_start = std::chrono::high_resolution_clock::now();
     for (int d = 0; d < dataset_size; d++) {
         set<int>::iterator it = coverage_coreset.find(d);
         if (it == coverage_coreset.end()) {
@@ -367,6 +374,15 @@ void many_to_many_swap(set<int> coverage_coreset, string dataset_name, int num_c
     } else {
         cout << "Error opening input file: " << labels_file << endl;
     }
+
+    pre_end = std::chrono::high_resolution_clock::now();
+    pre_elapsed = pre_end - pre_start;
+    pre_time = pre_elapsed.count();
+    cout << "Preprocessing Time: " << to_string(pre_time) << endl;
+
+    std::chrono::time_point<std::chrono::high_resolution_clock> algo_start, algo_end;
+    std::chrono::duration<double> algo_elapsed;
+    algo_start = std::chrono::high_resolution_clock::now();
 
     for (int i = 0; i < num_classes; i++) {
         set<int> class_points;
@@ -429,6 +445,11 @@ void many_to_many_swap(set<int> coverage_coreset, string dataset_name, int num_c
         }
     }
 
+    algo_end = std::chrono::high_resolution_clock::now();
+    algo_elapsed = algo_end - algo_start;
+    algo_time = algo_elapsed.count();
+
+    cout << "Algorithm time: " << to_string(algo_time) << endl;
     cout << "Solution Size: " << coverage_coreset.size() << endl;
     
 }
@@ -454,7 +475,8 @@ int main(int argc, char const *argv[]) {
     int distribution_req = stoi(argv[3]);
     int num_classes = 10;
     int dataset_size = 50000;
-    // cout << coverage_factor << endl;
+    cout << "Coverage Factor: " << coverage_factor << endl;
+    cout << "Distribution Req: " << distribution_req << endl;
 
     set<int> coverage_coreset = gfkc(dataset, coverage_factor, 0, num_classes, dataset_size);
     many_to_many_swap(coverage_coreset, dataset, num_classes, dataset_size, distribution_req, coverage_factor);
