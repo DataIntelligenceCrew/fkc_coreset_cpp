@@ -163,7 +163,7 @@ set<int> set_cover(vector<int> coverage_tracker, set<int> candidates, int datase
  * @param dataset_size size of the dataset
 */
 
-set<int> gfkc(string dataset, double coverage_factor, int distribution_req, int num_classes, int dataset_size) {
+set<int> gfkc(string dataset, int coverage_factor, int distribution_req, int num_classes, int dataset_size) {
     // Reading posting list 
     // string posting_list_file = "/localdisk3/data-selection/data/metadata/" + dataset + "/" + to_string(coverage_factor) + "/resnet-18.txt";
     // cout << posting_list_file << endl;
@@ -451,6 +451,18 @@ void many_to_many_swap(set<int> coverage_coreset, string dataset_name, int num_c
 
     cout << "Algorithm time: " << to_string(algo_time) << endl;
     cout << "Solution Size: " << coverage_coreset.size() << endl;
+
+    string outfile = "/localdisk2/fkc_coreset_cpp_results/solution_files/two_phase_" + dataset_name + "_" + to_string(coverage_factor) + "_" + to_string(distribution_req) + ".txt";
+    ofstream outdata;
+    outdata.open(outfile);
+    if (!outdata) {
+        cout << "Couldn't open file" << endl;
+    }
+
+    for (auto i : coverage_coreset) {
+        outdata << i << endl;
+    }
+    outdata.close();
     
 }
 
@@ -471,7 +483,7 @@ void many_to_many_swap(set<int> coverage_coreset, string dataset_name, int num_c
 
 int main(int argc, char const *argv[]) {
     string dataset = argv[1];
-    double coverage_factor = stod(argv[2]);
+    int coverage_factor = stod(argv[2]);
     int distribution_req = stoi(argv[3]);
     int num_classes = 10;
     int dataset_size = 50000;
