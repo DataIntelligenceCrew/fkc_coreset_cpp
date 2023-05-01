@@ -34,8 +34,11 @@
 #include <random>
 #include <queue>
 #include <omp.h>
-using namespace std;
+#include <pqxx/pqxx>
 
+using namespace std;
+int nyc_taxicab_size = 1000000;
+vector<int> nyc_group_distribution = {4453, 22189, 861858, 27882, 107, 1618, 81893};
 
 bool check_for_zeros(vector<int> v) {
     bool zeros = std::all_of(v.begin(), v.end(), [](int i){ return i == 0;});
@@ -44,7 +47,8 @@ bool check_for_zeros(vector<int> v) {
 
 map<int, set<int>> get_posting_list(int datasetsize, string dataset_name) {
 
-    string posting_list_file = "/localdisk3/data-selection/data/metadata/cifar10/0.9/resnet-18_rf.txt";
+    // string posting_list_file = "/localdisk3/data-selection/data/metadata/cifar10/0.9/resnet-18_rf.txt";
+    string posting_list_file = "/localdisk2/fkc_coreset_cpp_results/fashion-mnist_resnet-18_rf.txt";
     std::ifstream infile(posting_list_file);
     map<int, set<int>> posting_list;
     if (infile.is_open()) {
@@ -75,7 +79,8 @@ map<int, set<int>> get_posting_list(int datasetsize, string dataset_name) {
 
 map<int, vector<int>> get_posting_list_sc(int datasetsize, string dataset_name, set<int> candidates) {
 
-    string posting_list_file = "/localdisk3/data-selection/data/metadata/cifar10/0.9/resnet-18_rf.txt";
+    // string posting_list_file = "/localdisk3/data-selection/data/metadata/cifar10/0.9/resnet-18_rf.txt";
+    string posting_list_file = "/localdisk2/fkc_coreset_cpp_results/fashion-mnist_resnet-18_rf.txt";
     std::ifstream infile(posting_list_file);
     map<int, vector<int>> posting_list;
     if (infile.is_open()) {
@@ -104,6 +109,58 @@ map<int, vector<int>> get_posting_list_sc(int datasetsize, string dataset_name, 
 
     return posting_list;
     
+}
+
+using namespace pqxx;
+map<int, vector<bool>> postgress_test(int dataset_size) {
+    
+    string sql;
+    map<int, vector<bool>> posting_list;
+   
+   try {
+      connection C("dbname = pmundra");
+      if (C.is_open()) {
+         cout << "Opened database successfully: " << C.dbname() << endl;
+      } else {
+         cout << "Can't open database" << endl;
+        //  return 1;
+      }
+
+      /* Create SQL statement */
+      for (int start_id = 0; start_id < dataset_size; start_id += 10000) {
+        int end_id = 10000 + start_id;
+        if (end_id > dataset_size) {
+            end_id = dataset_size + 1;
+        }
+        sql = "SELECT * from nyc_postinglist where id >= " + std::to_string(start_id) + " and id < " + std::to_string(end_id);
+
+        /* Create a nontransactional object. */
+        nontransaction N(C);
+        
+        /* Execute SQL query */
+        result R(N.exec(sql));
+        for (result::const_iterator c = R.begin(); c != R.end(); ++c) {
+            int id = c[0].as<int>();
+            pair<array_parser::juncture, string> elem;
+            auto pl = c[1].as_array();
+            vector<bool> values(dataset_size, false);
+            // cout << id << endl;
+            do {
+                elem = pl.get_next();
+                if (elem.first == array_parser::juncture::string_value) {
+                    values[stoi(elem.second)] = true;
+                }
+            } while (elem.first != array_parser::juncture::done);
+
+            posting_list[id] = values;
+        }
+      }
+      return posting_list;
+    //   connection::~connection();
+   } catch (const std::exception &e) {
+      cerr << e.what() << std::endl;
+      return posting_list;
+   }
 }
 
 
@@ -163,14 +220,16 @@ set<int> set_cover(vector<int> coverage_tracker, set<int> candidates, int datase
  * @param dataset_size size of the dataset
 */
 
-set<int> gfkc(string dataset, int coverage_factor, int distribution_req, int num_classes, int dataset_size) {
+set<int> gfkc(string dataset, int coverage_factor, int distribution_req, int num_classes, int dataset_size, double select_scale) {
     // Reading posting list 
     // string posting_list_file = "/localdisk3/data-selection/data/metadata/" + dataset + "/" + to_string(coverage_factor) + "/resnet-18.txt";
     // cout << posting_list_file << endl;
     double pre_time = 0.0;
     double algo_time = 0.0;
-    string posting_list_file = "/localdisk3/data-selection/data/metadata/cifar10/0.9/resnet-18_rf.txt";
-    string labels_file = "/localdisk3/data-selection/data/metadata/cifar10/labels.txt";
+    // string posting_list_file = "/localdisk3/data-selection/data/metadata/cifar10/0.9/resnet-18_rf.txt";
+    // string posting_list_file = "/localdisk2/fkc_coreset_cpp_results/mnist_resnet-18_rf.txt";
+    // string labels_file = "/localdisk3/data-selection/data/metadata/mnist/labels.txt";
+    string labels_file = "/localdisk3/nyc_labels_1mil.txt";
     map<int, vector<int>> labels_dict;
     // initialize trackers
     /**
@@ -178,7 +237,11 @@ set<int> gfkc(string dataset, int coverage_factor, int distribution_req, int num
      * @todo fairness tracker class wise distribution req
     */
     vector<int> coverage_tracker(dataset_size, coverage_factor);
-    vector<int> fairness_tracker(num_classes, distribution_req);
+    vector<int> fairness_tracker(num_classes, 0);
+    int coreset_size = (int) dataset_size * select_scale;
+    for (int i = 0; i < num_classes; i++) {
+        fairness_tracker[i] = (int) nyc_group_distribution[i] * select_scale;
+    }
     set<int> coreset;
     set<int> delta;
 
@@ -187,28 +250,30 @@ set<int> gfkc(string dataset, int coverage_factor, int distribution_req, int num
     std::chrono::time_point<std::chrono::high_resolution_clock> pre_start, pre_end;
     std::chrono::duration<double> pre_elapsed;
     pre_start = std::chrono::high_resolution_clock::now();
-    std::ifstream infile(posting_list_file);
-    map<int, vector<int>> posting_list;
-    if (infile.is_open()) {
-        string line;
-        int key = 0;
-        while (getline(infile, line)) {
-            stringstream ss(line);
-            string value;
-            vector<int> values(dataset_size, 0);
-            while (ss >> value) {
-                values[stoi(value)] = 1;
-            }
+    // std::ifstream infile(posting_list_file);
+    // map<int, vector<int>> posting_list;
+    map<int, vector<bool>> posting_list = postgress_test(dataset_size);
+    // if (infile.is_open()) {
+    //     string line;
+    //     int key = 0;
+    //     while (getline(infile, line)) {
+    //         stringstream ss(line);
+    //         string value;
+    //         vector<int> values(dataset_size, 0);
+    //         while (ss >> value) {
+    //             values[stoi(value)] = 1;
+    //         }
 
-            posting_list[key] = values;
-            key += 1;
-        }
+    //         posting_list[key] = values;
+    //         key += 1;
+    //     }
         
 
-    } else {
-        cout << "Error opening input file: " << posting_list_file << endl;
-    }
-    infile.close();
+    // } else {
+    //     cout << "Error opening input file: " << posting_list_file << endl;
+    // }
+    // infile.close();
+    
     
     std::ifstream lfile(labels_file);
     if (lfile.is_open()) {
@@ -216,7 +281,8 @@ set<int> gfkc(string dataset, int coverage_factor, int distribution_req, int num
         while (getline(lfile, line)) {
             stringstream ss(line);
             string value;
-            char del = ':';
+            // char del = ':';
+            char del = ',';
             int iter = 0;
             int id;
             int label;
@@ -250,7 +316,7 @@ set<int> gfkc(string dataset, int coverage_factor, int distribution_req, int num
     std::chrono::time_point<std::chrono::high_resolution_clock> algo_start, algo_end;
     std::chrono::duration<double> algo_elapsed;
     algo_start = std::chrono::high_resolution_clock::now();
-    while (((!check_for_zeros(coverage_tracker)) || (!check_for_zeros(fairness_tracker))) && coreset.size() < dataset_size) {
+    while (((!check_for_zeros(coverage_tracker)) || (!check_for_zeros(fairness_tracker))) && coreset.size() < coreset_size) {
         vector<int> possible_candidates;
         set_difference(delta.begin(), delta.end(), coreset.begin(), coreset.end(), inserter(possible_candidates, possible_candidates.begin()));
         int best_point = -1;
@@ -262,8 +328,14 @@ set<int> gfkc(string dataset, int coverage_factor, int distribution_req, int num
         # pragma omp parallel for
         for (int j = 0; j < possible_candidates.size(); j++) {
             int i = possible_candidates[j];
-            int coverage_score = inner_product(posting_list[i].begin(), posting_list[i].end(), coverage_tracker.begin(), 0);
+            vector<int> point_pl;
+            for (auto pl_bool : posting_list[i]) {
+                point_pl.push_back(int(pl_bool));
+            }
+            // int coverage_score = inner_product(posting_list[i].begin(), posting_list[i].end(), coverage_tracker.begin(), 0);
+            int coverage_score = inner_product(point_pl.begin(), point_pl.end(), coverage_tracker.begin(), 0);
             int fairness_score = inner_product(labels_dict[i].begin(), labels_dict[i].end(), fairness_tracker.begin(), 0);
+            point_pl.clear();
             omp_set_lock(&write_lock);
             if ((coverage_score + fairness_score) > max_score) {
                 best_point = i;
@@ -275,9 +347,9 @@ set<int> gfkc(string dataset, int coverage_factor, int distribution_req, int num
 
         if (best_point != -1) {
             coreset.insert(best_point);
-            vector<int> pl_best = posting_list[best_point];
+            vector<bool> pl_best = posting_list[best_point];
             for (int i = 0; i < dataset_size; i++) {
-                if (pl_best[i] == 1) {
+                if (pl_best[i]) {
                     if (coverage_tracker[i] != 0) {
                         coverage_tracker[i] -= 1;
                     }
@@ -349,7 +421,7 @@ void many_to_many_swap(set<int> coverage_coreset, string dataset_name, int num_c
         set<int> points;
         labels_to_points[i] = points; 
     }
-    string labels_file = "/localdisk3/data-selection/data/metadata/cifar10/labels.txt";
+    string labels_file = "/localdisk3/data-selection/data/metadata/mnist/labels.txt";
     std::ifstream lfile(labels_file);
     if (lfile.is_open()) {
         string line;
@@ -468,8 +540,42 @@ void many_to_many_swap(set<int> coverage_coreset, string dataset_name, int num_c
 
 
 
+// using namespace pqxx;
+// void postgress_test() {
+    
+//     char * sql;
+   
+//    try {
+//       connection C("dbname = testdb user = postgres password = cohondob \
+//       hostaddr = 127.0.0.1 port = 5432");
+//       if (C.is_open()) {
+//          cout << "Opened database successfully: " << C.dbname() << endl;
+//       } else {
+//          cout << "Can't open database" << endl;
+//          return 1;
+//       }
 
+//       /* Create SQL statement */
+//       sql = "CREATE TABLE COMPANY("  \
+//       "ID INT PRIMARY KEY     NOT NULL," \
+//       "NAME           TEXT    NOT NULL," \
+//       "AGE            INT     NOT NULL," \
+//       "ADDRESS        CHAR(50)," \
+//       "SALARY         REAL );";
 
+//       /* Create a transactional object. */
+//       work W(C);
+      
+//       /* Execute SQL query */
+//       W.exec( sql );
+//       W.commit();
+//       cout << "Table created successfully" << endl;
+//       C.disconnect ();
+//    } catch (const std::exception &e) {
+//       cerr << e.what() << std::endl;
+//     //   return 1;
+//    }
+// }
 
 
 
@@ -485,12 +591,25 @@ int main(int argc, char const *argv[]) {
     string dataset = argv[1];
     int coverage_factor = stod(argv[2]);
     int distribution_req = stoi(argv[3]);
-    int num_classes = 10;
-    int dataset_size = 50000;
+    double scale_select = stod(argv[4]);
+    int num_classes = 7;
+    int dataset_size = 60000;
     cout << "Coverage Factor: " << coverage_factor << endl;
     cout << "Distribution Req: " << distribution_req << endl;
 
-    set<int> coverage_coreset = gfkc(dataset, coverage_factor, 0, num_classes, dataset_size);
-    many_to_many_swap(coverage_coreset, dataset, num_classes, dataset_size, distribution_req, coverage_factor);
+    set<int> coverage_coreset = gfkc(dataset, coverage_factor, distribution_req, num_classes, nyc_taxicab_size, scale_select);
+    cout << "Solution Size: " << coverage_coreset.size() << endl;
+    // many_to_many_swap(coverage_coreset, dataset, num_classes, dataset_size, distribution_req, coverage_factor);
+    string outfile = "/localdisk2/fkc_coreset_cpp_results/solution_files/gfkc_" + dataset + "_" + to_string(coverage_factor) + "_" + to_string(scale_select) + ".txt";
+    ofstream outdata;
+    outdata.open(outfile);
+    if (!outdata) {
+        cout << "Couldn't open file" << endl;
+    }
+
+    for (auto i : coverage_coreset) {
+        outdata << i << endl;
+    }
+    outdata.close();
     return 0;
 }

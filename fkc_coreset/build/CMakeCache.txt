@@ -227,11 +227,35 @@ OpenMP_gomp_LIBRARY:FILEPATH=/usr/lib/gcc/x86_64-redhat-linux/8/libgomp.so
 //Path to the pthread library for OpenMP
 OpenMP_pthread_LIBRARY:FILEPATH=/usr/lib64/libpthread.so
 
+//The directory containing a CMake configuration file for PostgreSQL.
+PostgreSQL_DIR:PATH=PostgreSQL_DIR-NOTFOUND
+
+//The Set the PostgreSQL_INCLUDE_DIR cmake cache entry to the top-level
+// directory containing the PostgreSQL include directories. E.g
+// /usr/local/include/PostgreSQL/8.4 or C:/Program Files/PostgreSQL/8.4/include
+PostgreSQL_INCLUDE_DIR:PATH=/usr/include
+
+//The Set the PostgreSQL_LIBRARY_DIR cmake cache entry to the top-level
+// directory containing the PostgreSQL libraries.
+PostgreSQL_LIBRARY_DEBUG:FILEPATH=PostgreSQL_LIBRARY_DEBUG-NOTFOUND
+
+//The Set the PostgreSQL_LIBRARY_DIR cmake cache entry to the top-level
+// directory containing the PostgreSQL libraries.
+PostgreSQL_LIBRARY_RELEASE:FILEPATH=/usr/lib64/libpq.so
+
+//The Set the PostgreSQL_INCLUDE_DIR cmake cache entry to the top-level
+// directory containing the PostgreSQL include directories. E.g
+// /usr/local/include/PostgreSQL/8.4 or C:/Program Files/PostgreSQL/8.4/include
+PostgreSQL_TYPE_INCLUDE_DIR:PATH=/usr/include/pgsql/server
+
 //Value Computed by CMake
 fkc_coreset_BINARY_DIR:STATIC=/u/pmundra/fkc_coreset_cpp/fkc_coreset/build
 
 //Value Computed by CMake
 fkc_coreset_SOURCE_DIR:STATIC=/u/pmundra/fkc_coreset_cpp/fkc_coreset/src
+
+//The directory containing a CMake configuration file for libpqxx.
+libpqxx_DIR:PATH=/usr/lib64/cmake/libpqxx
 
 
 ########################
@@ -387,6 +411,8 @@ FIND_PACKAGE_MESSAGE_DETAILS_OpenMP:INTERNAL=[TRUE][TRUE][c ][v4.5()]
 FIND_PACKAGE_MESSAGE_DETAILS_OpenMP_C:INTERNAL=[-fopenmp][/usr/lib/gcc/x86_64-redhat-linux/8/libgomp.so][/usr/lib64/libpthread.so][v4.5()]
 //Details about finding OpenMP_CXX
 FIND_PACKAGE_MESSAGE_DETAILS_OpenMP_CXX:INTERNAL=[-fopenmp][/usr/lib/gcc/x86_64-redhat-linux/8/libgomp.so][/usr/lib64/libpthread.so][v4.5()]
+//Details about finding PostgreSQL
+FIND_PACKAGE_MESSAGE_DETAILS_PostgreSQL:INTERNAL=[/usr/lib64/libpq.so][/usr/include][/usr/include/pgsql/server][v13.5()]
 //Result of TRY_COMPILE
 OpenMP_COMPILE_RESULT_CXX_fopenmp:INTERNAL=TRUE
 //Result of TRY_COMPILE
@@ -411,4 +437,12 @@ OpenMP_SPECTEST_C_:INTERNAL=TRUE
 OpenMP_gomp_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: OpenMP_pthread_LIBRARY
 OpenMP_pthread_LIBRARY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: PostgreSQL_INCLUDE_DIR
+PostgreSQL_INCLUDE_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: PostgreSQL_LIBRARY_DEBUG
+PostgreSQL_LIBRARY_DEBUG-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: PostgreSQL_LIBRARY_RELEASE
+PostgreSQL_LIBRARY_RELEASE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: PostgreSQL_TYPE_INCLUDE_DIR
+PostgreSQL_TYPE_INCLUDE_DIR-ADVANCED:INTERNAL=1
 

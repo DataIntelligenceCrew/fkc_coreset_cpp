@@ -6,8 +6,9 @@
 
 
 def refactor_pl():
-    posting_file_loc = "/localdisk3/data-selection/data/metadata/cifar10/0.9/resnet-18.txt"
-    posting_file_loc_rf = "/localdisk3/data-selection/data/metadata/cifar10/0.9/resnet-18_rf.txt"
+    # posting_file_loc = "/localdisk3/data-selection/data/metadata/fashion-mnist/0.9/resnet-18.txt"
+    posting_file_loc = '/localdisk2/fkc_coreset_cpp_results/fashion_mnist_pl-resnet-18_0.9.txt'
+    posting_file_loc_rf = "/localdisk2/fkc_coreset_cpp_results/fashion-mnist_resnet-18_rf.txt"
 
     posting_list_file = open(posting_file_loc, 'r')
     lines = posting_list_file.readlines()
